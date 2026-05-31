@@ -2,30 +2,71 @@ package highlighting.regex;
 
 import highlighting.core.HighlightRegion;
 import highlighting.core.SyntaxHighlighter;
-import java.util.*;
+import highlighting.presets.MiniJavaTokens;
+import java.util.ArrayList;
+import java.util.List;
 
-// TODO: Implement a scanning-based highlighting strategy that reads the input from left to right.
-// At each position, select the longest token that matches at this position. If there is a tie, the
-// token that appears earlier in the token list should be preferred.
-
-// TODO: Make this class inherit from {@code SyntaxHighlighter} and implement the abstract method
-// {@code collectMatches}. The scanning algorithm should ensure that the resulting list of regions
-// is already sorted, non-overlapping and contains only valid regions, so that no additional
-// normalisation or conflict resolution is required. Therefore, {@code resolveConflicts} can be left
-// as is, and {@code normalize} should be overridden as the identity function.
 public class ScanningHighlighter extends SyntaxHighlighter {
 
-  // TODO: Implement the scanning-based matching strategy here. Iterate from left to right over the
-  // input, determine the best matching token at each position, and collect all resulting highlight
-  // regions in order.
   @Override
   public List<HighlightRegion> collectMatches(String text) {
-    throw new UnsupportedOperationException("not implemented yet");
+    List<HighlightRegion> result = new ArrayList<>();
+    List<Token> tokens = MiniJavaTokens.defaultTokens();
+    int i = 0;
+    int length = text.length();
+
+    // Wir wandern zeichenweise von links nach rechts durch den Text
+    while (i < length) {
+      String remainingText = text.substring(i);
+
+      HighlightRegion bestMatch = null;
+      int bestTokenIndex = -1;
+
+      // Prüfe alle verfügbaren Token an der aktuellen Position i
+      for (int t = 0; t < tokens.size(); t++) {
+        Token token = tokens.get(t);
+        List<HighlightRegion> matches = token.test(remainingText);
+
+        if (matches != null && !matches.isEmpty()) {
+          // Wir suchen nach Treffern, die GENAU am Anfang des Resttextes (Index 0) beginnen
+          for (HighlightRegion match : matches) {
+            if (match.start() == 0 && match.end() > 0) {
+
+              // Kriterien: Längstes Match gewinnt.
+              // Bei Gleichstand gewinnt das Token, das weiter vorne in der Liste steht (t <
+              // bestTokenIndex).
+              if (bestMatch == null
+                  || match.end() > bestMatch.end()
+                  || (match.end() == bestMatch.end() && t < bestTokenIndex)) {
+
+                // Absolute Position im Gesamttext berechnen
+                bestMatch = new HighlightRegion(i + match.start(), i + match.end(), match.colour());
+
+                bestTokenIndex = t;
+              }
+            }
+          }
+        }
+      }
+
+      // Auswertung des besten Treffers für Position i
+      if (bestMatch != null) {
+        result.add(bestMatch);
+        // Wenn ein Token passt: Index direkt hinter das gefundene Match setzen
+        i = bestMatch.end();
+      } else {
+        // Wenn kein Token passt: Index um ein Zeichen erhöhen (Vermeidet Endlosschleifen)
+        i++;
+      }
+    }
+
+    return result;
   }
 
-  // TODO: Implement the identity function here.
+  // Überlagert die Normalisierung als Identitätsfunktion, da collectMatches
+  // bereits eine perfekt sortierte und überschneidungsfreie Liste liefert.
   @Override
   public List<HighlightRegion> normalize(List<HighlightRegion> candidates) {
-    throw new UnsupportedOperationException("not implemented yet");
+    return candidates;
   }
 }
