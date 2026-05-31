@@ -18,11 +18,26 @@ public final class MiniJavaTokens {
   // pattern can be selected as the "highlighted" region.
   public static List<Token> defaultTokens() {
     return List.of(
-        // Example: string literals (students should define further tokens below)
-        Token.of(Pattern.compile("\"([^\"\\\\]|\\\\.)*\""), MiniJavaColours.STRING_LITERAL_COLOUR)
+        // 1. Kommentare (Spezifischste zuerst: Javadoc -> Block -> Einzeilig)
+        // (?s) sorgt dafür, dass der Punkt (.) auch Zeilenumbrüche matcht
+        Token.of(Pattern.compile("/\\*\\*(?s:.*?)\\*/"), MiniJavaColours.JAVADOC_COMMENT_COLOUR),
+        Token.of(Pattern.compile("/\\*(?s:.*?)\\*/"), MiniJavaColours.BLOCK_COMMENT_COLOUR),
+        Token.of(Pattern.compile("//.*"), MiniJavaColours.LINE_COMMENT_COLOUR),
 
-        // TODO: Define additional tokens for MiniJava, e.g. character literals, keywords,
-        // annotations, comments, identifiers, numbers, operators, etc.
+        // 2. Literale (Strings und Characters)
+        Token.of(Pattern.compile("\"([^\"\\\\]|\\\\.)*\""), MiniJavaColours.STRING_LITERAL_COLOUR),
+        Token.of(Pattern.compile("'[^']'"), MiniJavaColours.CHAR_LITERAL_COLOUR),
+
+        // 3. Annotationen (Beginnen mit @, gefolgt von Buchstaben oder Bindestrich)
+        Token.of(Pattern.compile("@[a-zA-Z-]+"), MiniJavaColours.ANNOTATION_COLOUR),
+
+        // 4. Keywords (Eingeschlossen in Wortgrenzen \\b, damit sie exakte Treffer sind)
+        Token.of(
+            Pattern.compile("\\b(package|import|class|public|private|final|return|null|new)\\b"),
+            MiniJavaColours.KEYWORD_COLOUR)
+
+        // Hinweis: Falls in MiniJavaColours die genauen Farb-Konstanten (wie CHAR_LITERAL_COLOUR)
+        // leicht anders heißen, passe den Namen nach dem Punkt einfach kurz an deine Vorgabe an.
         );
   }
 }
